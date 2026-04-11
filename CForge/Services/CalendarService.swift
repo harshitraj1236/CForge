@@ -35,7 +35,7 @@ class CalendarService: ObservableObject {
         let event = EKEvent(eventStore: calendarStore)
         event.title = contest.name
         event.startDate = contest.startTime
-        event.endDate = contest.startTime.addingTimeInterval(TimeInterval(contest.duration) ?? 7200)
+        event.endDate = contest.startTime.addingTimeInterval(TimeInterval(contest.durationSeconds))
         
         let alarm = EKAlarm(relativeOffset: -900)
         event.addAlarm(alarm)

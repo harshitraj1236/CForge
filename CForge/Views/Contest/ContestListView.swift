@@ -3,7 +3,6 @@ import EventKit
 import EventKitUI
 
 struct ContestListView: View {
-    
     @State internal var contests: [CFContest] = []
     @State internal var searchText = ""
     @State internal var isRefreshing = false
@@ -30,7 +29,6 @@ struct ContestListView: View {
     }
     
     // MARK: - View Components
-    
     private var contentView: some View {
         ScrollView {
             SearchBar(text: $searchText, placeholder: "Search contests...")
@@ -51,7 +49,6 @@ struct ContestListView: View {
             .padding(.horizontal)
             .padding(.vertical, 8)
         }
-        
         .background(
             LinearGradient(
                 colors: [.darkBackground, .darkestBackground],
@@ -62,7 +59,6 @@ struct ContestListView: View {
         )
         .refreshable { await refreshContests() }
     }
-    
     private func contestCard(contest: CFContest) -> some View {
         VStack(alignment: .leading, spacing: 12) {
             
@@ -84,8 +80,6 @@ struct ContestListView: View {
             
             Divider()
                 .padding(.vertical, 4)
-            
-            
             HStack {
                 if contest.isRated {
                     Text("Rated")
@@ -223,7 +217,6 @@ struct ContestDetailView: View {
             Text("Please enable calendar access in Settings to save contest reminders.")
         }
     }
-    
     private func detailRow(icon: String, title: String, value: String) -> some View {
         HStack {
             Label {
@@ -247,7 +240,6 @@ struct ContestDetailView: View {
             Text(contest.name)
                 .font(.title.bold())
                 .foregroundColor(.textPrimary)
-            
             HStack(spacing: 8) {
                 if contest.isRated {
                     pillLabel(text: "Rated", colors: [.neonBlue, .neonPurple])
@@ -256,7 +248,6 @@ struct ContestDetailView: View {
             }
         }
     }
-    
     
     private func pillLabel(text: String, colors: [Color]) -> some View {
         Text(text)
@@ -368,7 +359,7 @@ struct ContestDetailView: View {
         VStack(spacing: 12) {
             
             if let registrationUrl = contest.registrationUrl {
-                Link(destination: contest.registrationUrl ?? URL(string: "https://codeforces.com")!) {
+                Link(destination: registrationUrl) {
                     Text("Register Now")
                         .font(.headline.weight(.bold))
                         .frame(maxWidth: .infinity)
@@ -399,14 +390,10 @@ struct ContestDetailView: View {
                     let granted = await calenderService.requestAccess()
                     if granted {
                         let newEvent = calenderService.pinEvents(for: contest)
-                        await MainActor.run {
-                            self.upcomingContest = newEvent
-                        }
+                        self.upcomingContest = newEvent
                     }
                     else{
-                        await MainActor.run {
-                            self.showAlert = true
-                        }
+                        self.showAlert = true
                     }
                 }
             }) {
@@ -481,8 +468,7 @@ struct SecondaryButtonStyle: ButtonStyle {
     ContestListView()
 }
 
-
-extension EKEvent: Identifiable {
+extension EKEvent: @retroactive Identifiable {
     public var id: String {
         self.eventIdentifier ?? UUID().uuidString
     }
