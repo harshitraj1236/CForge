@@ -27,7 +27,6 @@ struct ContestListView: View {
     }
     
     // MARK: - View Components
-    
     private var contentView: some View {
         ScrollView {
             SearchBar(text: $viewModel.searchText, placeholder: "Search contests...")
@@ -149,6 +148,16 @@ struct ContestListView: View {
         .padding(.horizontal, 4)
         .padding(.vertical, 8)
     }
+    
+    private var backgroundGradient: some View {
+        LinearGradient(
+            colors: [.darkBackground, .darkestBackground],
+            startPoint: .top,
+            endPoint: .bottom
+        )
+        .ignoresSafeArea()
+    }
+    
     struct NeonLabelStyle: LabelStyle {
         func makeBody(configuration: Configuration) -> some View {
             HStack(spacing: 4) {
@@ -194,6 +203,8 @@ struct ContestRow: View {
 
 struct ContestDetailView: View {
     let contest: CFContest
+    @State private var showingEventEditor = false
+    @State private var eventToEdit: EKEvent?
     
     var body: some View {
         ScrollView {
@@ -390,22 +401,42 @@ struct ContestDetailView: View {
                 .disabled(true)
                 .buttonStyle(PrimaryButtonStyle())
             }
-            
+            Button(action: {
+                Task {
+                    let hasAccess = await CalendarService.shared.requestAccess()
+                    if hasAccess {
+                        let generatedEvent = CalendarService.shared.pinEvents(for: contest)
+                        await MainActor.run {
+                            self.eventToEdit = generatedEvent
+                            self.showingEventEditor = true
+                        }
+                    }
+                }
+            }) {
+                HStack {
+                    Image(systemName: "calendar.badge.plus")
+                    Text("Add to Calendar")
+                }
+                .font(.headline.weight(.bold))
+                .frame(maxWidth: .infinity)
+                .padding()
+                .background(Color(.secondarySystemBackground))
+                .foregroundColor(.primary)
+                .cornerRadius(12)
+            }
+            .buttonStyle(.plain)
         }
         .padding(.top, 8)
-    }
-    
-    private func showAlert(title: String, message: String) {
-        guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-              let rootViewController = windowScene.windows.first?.rootViewController else {
-            return
+        .sheet(isPresented: $showingEventEditor) {
+            if let event = eventToEdit {
+                EventEditViewController(
+                    isPresented: $showingEventEditor,
+                    event: event,
+                    eventStore: CalendarService.shared.calendarStore
+                )
+            }
         }
-        
-        let alert = UIAlertController(title: title, message: message, preferredStyle: .alert)
-        alert.addAction(UIAlertAction(title: "OK", style: .default))
-        rootViewController.present(alert, animated: true)
     }
-    
 }
 
 // MARK: - Styles
@@ -440,15 +471,6 @@ struct SecondaryButtonStyle: ButtonStyle {
             .foregroundColor(.primary)
             .cornerRadius(10)
     }
-}
-
-private var backgroundGradient: some View {
-    LinearGradient(
-        colors: [.darkBackground, .darkestBackground],
-        startPoint: .top,
-        endPoint: .bottom
-    )
-    .ignoresSafeArea()
 }
 
 // MARK: - Preview

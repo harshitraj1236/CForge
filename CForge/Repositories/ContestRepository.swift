@@ -13,20 +13,41 @@ actor ContestRepository {
     private var lastFetch: Date?
     private let expirationInterval: TimeInterval = 300
     
-    init (service: ContestServiceProtocol = ContestService()) {
+    private var ongoingTask: Task<[CFContest], Error>?
+    
+    init(service: ContestServiceProtocol = ContestService()) {
         self.service = service
     }
     
-    func getContests(forceRefresh: Bool) async throws -> [CFContest] {
-        if !forceRefresh, let cache = cache, let lastFetch = lastFetch,
-           Date().timeIntervalSince(lastFetch) < expirationInterval {
-            AppLog.debug("ContestRepository: Returning cached data.", category: .cache)
-            return cache
+    func getContests(forceRefresh: Bool = false) async throws -> [CFContest] {
+        if !forceRefresh, let cache = cache, let lastFetch = lastFetch {
+            if Date().timeIntervalSince(lastFetch) < expirationInterval {
+                AppLog.debug("ContestRepository: Returning cached data.", category: .cache)
+                return cache
+            } else {
+                AppLog.debug("ContestRepository: Cache expired. Fetching fresh data.", category: .cache)
+            }
         }
         
-        let contests = try await service.fetchContests()
-        self.cache = contests
-        self.lastFetch = Date()
-        return contests
+        if let existingTask = ongoingTask {
+            AppLog.debug("ContestRepository: Joining ongoing fetch task.", category: .network)
+            return try await existingTask.value
+        }
+        
+        let task = Task<[CFContest], Error> {
+            do {
+                let contests = try await service.fetchContests()
+                
+                self.cache = contests
+                self.lastFetch = Date()
+                self.ongoingTask = nil
+                return contests
+            } catch {
+                self.ongoingTask = nil
+                throw error
+            }
+        }
+        ongoingTask = task
+        return try await task.value
     }
 }

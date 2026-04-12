@@ -8,7 +8,7 @@
 import Foundation
 
 @MainActor
-class ContestListViewModel: ObservableObject {
+final class ContestListViewModel: ObservableObject {
     enum ViewState {
         case idle, loading, loaded([CFContest]), error(String)
     }
@@ -33,11 +33,20 @@ class ContestListViewModel: ObservableObject {
         if case .loading = state { return }
         
         state = .loading
+        AppLog.debug("ViewModel: Loading contests (Force: \(forceRefresh))", category: .ui)
         do {
             allContests = try await repository.getContests(forceRefresh: forceRefresh)
             state = .loaded(allContests)
+            AppLog.debug("ViewModel: Contests loaded. Count: \(allContests.count)", category: .ui)
         } catch {
-            state = .error(error.localizedDescription)
+            let message: String
+            if let netError = error as? NetworkError {
+                message = netError.errorDescription ?? "Unknown network error"
+            } else {
+                message = error.localizedDescription
+            }
+            AppLog.error("ViewModel: Load Error - \(message)", category: .ui)
+            state = .error(message)
         }
     }
 }
