@@ -2,6 +2,11 @@ import SwiftUI
 import EventKit
 import EventKitUI
 
+private struct CalendarEventDraft: Identifiable {
+    let id = UUID()
+    let event: EKEvent
+}
+
 struct ContestListView: View {
     
     @StateObject internal var viewModel = ContestListViewModel()
@@ -203,8 +208,7 @@ struct ContestRow: View {
 
 struct ContestDetailView: View {
     let contest: CFContest
-    @State private var showingEventEditor = false
-    @State private var eventToEdit: EKEvent?
+    @State private var eventDraft: CalendarEventDraft?
     
     var body: some View {
         ScrollView {
@@ -282,12 +286,12 @@ struct ContestDetailView: View {
     
     private var countdownSection: some View {
         VStack(spacing: 8) {
-            Text("Starts in")
+            Text(contest.countdownTitle)
                 .font(.subheadline)
                 .foregroundColor(.textSecondary)
             
             HStack(spacing: 4) {
-                Text(contest.timeUntilStart)
+                Text(contest.countdownValue)
                     .font(.system(size: 28, weight: .bold, design: .rounded))
                     .foregroundStyle(
                         LinearGradient(
@@ -298,9 +302,11 @@ struct ContestDetailView: View {
                     )
             }
             
-            Text("Days    Hours    Minutes")
-                .font(.caption)
-                .foregroundColor(.textSecondary)
+            if contest.phase.uppercased() == "BEFORE" {
+                Text("Days    Hours    Minutes")
+                    .font(.caption)
+                    .foregroundColor(.textSecondary)
+            }
         }
         .frame(maxWidth: .infinity)
         .padding()
@@ -407,8 +413,7 @@ struct ContestDetailView: View {
                     if hasAccess {
                         let generatedEvent = CalendarService.shared.pinEvents(for: contest)
                         await MainActor.run {
-                            self.eventToEdit = generatedEvent
-                            self.showingEventEditor = true
+                            eventDraft = CalendarEventDraft(event: generatedEvent)
                         }
                     }
                 }
@@ -427,14 +432,16 @@ struct ContestDetailView: View {
             .buttonStyle(.plain)
         }
         .padding(.top, 8)
-        .sheet(isPresented: $showingEventEditor) {
-            if let event = eventToEdit {
-                EventEditViewController(
-                    isPresented: $showingEventEditor,
-                    event: event,
-                    eventStore: CalendarService.shared.calendarStore
-                )
-            }
+        .sheet(item: $eventDraft, onDismiss: {
+            eventDraft = nil
+        }) { draft in
+            EventEditViewController(
+                event: draft.event,
+                eventStore: CalendarService.shared.calendarStore,
+                onComplete: {
+                    eventDraft = nil
+                }
+            )
         }
     }
 }

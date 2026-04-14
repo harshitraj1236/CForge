@@ -28,11 +28,27 @@ struct CFContest: Identifiable, Codable {
         let minutes = (durationSeconds % 3600) / 60
         return "\(hours)h \(minutes)m"
     }
-    var timeUntilStart: String {
-        let formatter = DateComponentsFormatter()
-        formatter.allowedUnits = [.day, .hour, .minute]
-        formatter.unitsStyle = .abbreviated
-        return formatter.string(from: Date(), to: startTime) ?? ""
+
+    var countdownTitle: String {
+        switch phase.uppercased() {
+        case "BEFORE":
+            return "Starts in"
+        case "CODING":
+            return "Live now"
+        default:
+            return "Contest status"
+        }
+    }
+
+    var countdownValue: String {
+        switch phase.uppercased() {
+        case "BEFORE":
+            return startTime.timeRemainingString()
+        case "CODING":
+            return "Running"
+        default:
+            return "Ended"
+        }
     }
 }
 

@@ -9,16 +9,16 @@ import SwiftUI
 import EventKitUI
 
 struct EventEditViewController: UIViewControllerRepresentable {
-    @Binding var isPresented: Bool
     var event: EKEvent
     var eventStore: EKEventStore
+    var onComplete: () -> Void
     
     func makeCoordinator() -> Coordinator { Coordinator(self) }
     
     func makeUIViewController(context: Context) -> EKEventEditViewController {
         let controller = EKEventEditViewController()
-        controller.event = event
         controller.eventStore = eventStore
+        controller.event = event
         controller.editViewDelegate = context.coordinator
         return controller
     }
@@ -29,7 +29,7 @@ struct EventEditViewController: UIViewControllerRepresentable {
         var parent: EventEditViewController
         init(_ parent: EventEditViewController) { self.parent = parent }
         func eventEditViewController(_ controller: EKEventEditViewController, didCompleteWith action: EKEventEditViewAction) {
-            parent.isPresented = false
+            parent.onComplete()
         }
     }
 }

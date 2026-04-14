@@ -25,6 +25,7 @@ final class ContestListViewModel: ObservableObject {
     
     var filteredContests: [CFContest] {
         allContests
+            .filter { $0.phase.uppercased() == "BEFORE" }
             .filter { searchText.isEmpty || $0.name.localizedCaseInsensitiveContains(searchText) }
             .sorted { $0.startTime < $1.startTime }
     }
